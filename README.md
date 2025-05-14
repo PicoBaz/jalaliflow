@@ -8,11 +8,11 @@
 - [Installation](#installation)
 - [Configuration](#configuration)
 - [Usage](#usage)
-  - [Converting Dates](#converting-dates)
-  - [Checking Holidays](#checking-holidays)
-  - [Managing Events](#managing-events)
-  - [Eloquent Trait](#eloquent-trait)
-  - [Artisan Command](#artisan-command)
+    - [Converting Dates](#converting-dates)
+    - [Checking Holidays](#checking-holidays)
+    - [Managing Events](#managing-events)
+    - [Eloquent Trait](#eloquent-trait)
+    - [Artisan Command](#artisan-command)
 - [Advanced Usage](#advanced-usage)
 - [Contributing](#contributing)
 - [License](#license)
@@ -22,9 +22,9 @@
 - **Holiday Management**: Check official Persian holidays with a preloaded list (extendable via APIs).
 - **Event Scheduling**: Add and manage events with support for repetition (daily, weekly, etc.).
 - **Laravel Integration**:
-  - Eloquent Trait for automatic date conversion in models.
-  - Artisan command for listing holidays.
-  - Blade directives and middleware for locale-aware date handling.
+    - Eloquent Trait for automatic date conversion in models.
+    - Artisan command for listing holidays.
+    - Blade directives and middleware for locale-aware date handling.
 - **Multilingual Support**: Display dates in Persian, English, Arabic, or other languages.
 - **Configurable**: Customize date formats, timezones, and locales via a configuration file.
 - **Extensible**: Integrate with external APIs (e.g., Google Calendar) for advanced functionality.
@@ -202,4 +202,3 @@ JalaliFlow is open-source software licensed under the [MIT License](LICENSE).
 ---
 
 **Support**: For questions or issues, create a GitHub issue at [https://github.com/PicoBaz/JalaliFlow/issues](https://github.com/PicoBaz/JalaliFlow/issues) or contact us at [picobaz3@gmail.com](picobaz3@gmail.com).
-
