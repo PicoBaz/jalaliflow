@@ -188,7 +188,7 @@ JalaliFlow::setHolidays($holidays);
 
 ## Contributing
 We welcome contributions! To contribute:
-1. Fork the repository at [https://github.com/PicoBaz/JalaliFlow](https://github.com/PicoBaz/jalaliflow).
+1. Fork the repository at [https://github.com/PicoBaz/jalaliflow](https://github.com/PicoBaz/JalaliFlow).
 2. Create a feature branch (`git checkout -b feature/YourFeature`).
 3. Commit your changes (`git commit -m "Add YourFeature"`).
 4. Push to the branch (`git push origin feature/YourFeature`).
@@ -202,3 +202,4 @@ JalaliFlow is open-source software licensed under the [MIT License](LICENSE).
 ---
 
 **Support**: For questions or issues, create a GitHub issue at [https://github.com/PicoBaz/JalaliFlow/issues](https://github.com/PicoBaz/JalaliFlow/issues) or contact us at [picobaz3@gmail.com](picobaz3@gmail.com).
+
