@@ -28,4 +28,10 @@
             }
         }
     }
+    "repositories": [
+    {
+        "type": "path",
+        "url": "../jalaliflow"
+    }
+]
 }
