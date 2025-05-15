@@ -2,107 +2,323 @@
 
 namespace PicoBaz\JalaliFlow;
 
+use DateTime;
+use Exception;
+
 class JalaliFlow
 {
-    protected $holidays = [
-        '1404/01/01' => 'نوروز',
-        '1404/01/02' => 'نوروز',
-       
-    ];
-
-    public function toJalali($gregorianDate, $format = null)
+    /**
+     * Convert Gregorian date to Jalali.
+     *
+     * @param string $gregorianDate Gregorian date (Y-m-d format, e.g., '2025-05-14')
+     * @param string $format Jalali date format (default: 'Y/m/d')
+     * @return string Jalali date
+     */
+    public static function toJalali($gregorianDate, $format = 'Y/m/d')
     {
-        $format = $format ?? config('jalalisync.date_format', 'Y/m/d');
-        $date = \DateTime::createFromFormat('Y-m-d', $gregorianDate);
+        try {
+            $date = new DateTime($gregorianDate);
+            $gregorianYear = (int) $date->format('Y');
+            $gregorianMonth = (int) $date->format('m');
+            $gregorianDay = (int) $date->format('d');
 
-        if (!$date) {
-            return null;
+            // Convert to Julian Day
+            $julianDay = gregoriantojd($gregorianMonth, $gregorianDay, $gregorianYear);
+
+            // Convert Julian Day to Jalali
+            $jalaliDate = self::julianToJalali($julianDay);
+
+            // Format the output
+            return self::formatJalaliDate($jalaliDate, $format);
+        } catch (Exception $e) {
+            return 'Invalid date';
         }
-
-        
-        $jd = gregoriantojd($date->format('m'), $date->format('d'), $date->format('Y'));
-        $jalali = $this->jdToJalali($jd);
-
-        return sprintf($format, $jalali[0], $jalali[1], $jalali[2]);
     }
 
-    public function toGregorian($jalaliDate)
+    /**
+     * Convert Jalali date to Gregorian.
+     *
+     * @param string $jalaliDate Jalali date (Y/m/d format, e.g., '1404/02/24')
+     * @return string Gregorian date (Y-m-d format)
+     */
+    public static function toGregorian($jalaliDate)
     {
-        [$year, $month, $day] = explode('/', $jalaliDate);
-        $jd = $this->jalaliToJd($year, $month, $day);
-        return jdtogregorian($jd);
+        try {
+            // Parse Jalali date
+            [$jalaliYear, $jalaliMonth, $jalaliDay] = array_map('intval', explode('/', $jalaliDate));
+
+            // Convert to Julian Day
+            $julianDay = self::jalaliToJulian($jalaliYear, $jalaliMonth, $jalaliDay);
+
+            // Convert Julian Day to Gregorian
+            [$gregorianMonth, $gregorianDay, $gregorianYear] = explode('/', jdtogregorian($julianDay));
+
+            // Format as Y-m-d
+            return sprintf('%04d-%02d-%02d', $gregorianYear, $gregorianMonth, $gregorianDay);
+        } catch (Exception $e) {
+            return 'Invalid date';
+        }
     }
 
-    public function isHoliday($jalaliDate)
+    /**
+     * Check if a Jalali date is a holiday.
+     *
+     * @param string $jalaliDate Jalali date (Y/m/d format)
+     * @return bool
+     */
+    public static function isHoliday($jalaliDate)
     {
-        return isset($this->holidays[$jalaliDate]);
+        $holidays = self::getHolidays();
+        return isset($holidays[$jalaliDate]);
     }
 
-    public function addEvent($event)
+    /**
+     * Get list of holidays.
+     *
+     * @return array
+     */
+    public static function getHolidays()
     {
-       
         return [
-            'title' => $event['title'],
-            'date' => $event['date'],
-            'repeat' => $event['repeat'] ?? 'none',
+            '1404/01/01' => 'Norouz',
+            '1404/01/02' => 'Norouz',
+            // Add more holidays as needed
         ];
     }
 
-   
-    protected function jdToJalali($jd)
+    /**
+     * Add days to a Jalali date.
+     *
+     * @param string $jalaliDate Jalali date (Y/m/d format, e.g., '1404/02/24')
+     * @param int $number Number of days to add (can be negative)
+     * @return string New Jalali date
+     */
+    public static function addDay($jalaliDate, $number)
     {
-        $gy = 1600;
-        $gm = 0;
-        $gd = $jd - 1948320.5 - 79;
+        try {
+            // Convert Jalali to Gregorian
+            $gregorianDate = self::toGregorian($jalaliDate);
+            $date = new DateTime($gregorianDate);
 
-        $g_day_no = 365 * $gy + floor(($gy + 3) / 4) - floor(($gy + 99) / 100) + floor(($gy + 399) / 400);
-        for ($i = 0; $i < $gy; ++$i) {
-            $g_day_no += 365;
-            if ($i % 4 == 0) {
-                $g_day_no++;
+            // Add days
+            $date->modify("$number days");
+
+            // Convert back to Jalali
+            return self::toJalali($date->format('Y-m-d'));
+        } catch (Exception $e) {
+            return 'Invalid date';
+        }
+    }
+
+    /**
+     * Add weeks to a Jalali date.
+     *
+     * @param string $jalaliDate Jalali date (Y/m/d format)
+     * @param int $number Number of weeks to add (can be negative)
+     * @return string New Jalali date
+     */
+    public static function addWeek($jalaliDate, $number)
+    {
+        return self::addDay($jalaliDate, $number * 7);
+    }
+
+    /**
+     * Add months to a Jalali date, considering variable month lengths.
+     *
+     * @param string $jalaliDate Jalali date (Y/m/d format)
+     * @param int $number Number of months to add (can be negative)
+     * @return string New Jalali date
+     */
+    public static function addMonth($jalaliDate, $number)
+    {
+        try {
+            [$year, $month, $day] = array_map('intval', explode('/', $jalaliDate));
+
+            // Calculate new month and year
+            $totalMonths = $month + $number;
+            $newYear = $year + floor(($totalMonths - 1) / 12);
+            $newMonth = $totalMonths % 12;
+            if ($newMonth <= 0) {
+                $newMonth += 12;
+                $newYear--;
             }
+
+            // Adjust day if it exceeds the number of days in the new month
+            $maxDays = self::getJalaliMonthDays($newMonth, $newYear);
+            if ($day > $maxDays) {
+                $day = $maxDays;
+            }
+
+            // Format the new Jalali date
+            $newJalaliDate = sprintf('%04d/%02d/%02d', $newYear, $newMonth, $day);
+
+            // Validate by converting to Gregorian and back
+            $gregorianDate = self::toGregorian($newJalaliDate);
+            return self::toJalali($gregorianDate);
+        } catch (Exception $e) {
+            return 'Invalid date';
         }
-
-        $j_day_no = $gd - $g_day_no;
-        $j_np = floor($j_day_no / 12053);
-        $j_day_no %= 12053;
-
-        $jy = 979 + 33 * $j_np + 4 * floor($j_day_no / 1461);
-        $j_day_no %= 1461;
-
-        if ($j_day_no >= 366) {
-            $jy += floor(($j_day_no - 1) / 365);
-            $j_day_no = ($j_day_no - 1) % 365;
-        }
-
-        $days_in_month = [31, 31, 31, 31, 31, 31, 30, 30, 30, 30, 30, 29];
-        $jm = 0;
-        $jd = $j_day_no;
-
-        for ($i = 0; $i < 12 && $jd >= $days_in_month[$i]; ++$i) {
-            $jd -= $days_in_month[$i];
-            $jm++;
-        }
-
-        $jd++;
-        return [$jy, $jm + 1, $jd];
     }
 
-    protected function jalaliToJd($year, $month, $day)
+    /**
+     * Add years to a Jalali date.
+     *
+     * @param string $jalaliDate Jalali date (Y/m/d format)
+     * @param int $number Number of years to add (can be negative)
+     * @return string New Jalali date
+     */
+    public static function addYear($jalaliDate, $number)
     {
-        $gy = $year - 979;
-        $days = 365 * $gy + floor($gy / 33) * 8 + floor(($gy % 33 + 3) / 4) + 78 + $day;
-
-        for ($i = 1; $i < $month; ++$i) {
-            $days += ($i <= 6) ? 31 : (($i == 12 && !$this->isLeapYear($year)) ? 29 : 30);
-        }
-
-        return $days + 1948320.5;
+        return self::addMonth($jalaliDate, $number * 12);
     }
 
-    protected function isLeapYear($year)
+    /**
+     * Calculate the difference between two Jalali dates.
+     *
+     * @param string $startDate Jalali start date (Y/m/d format, e.g., '1404/02/24')
+     * @param string $endDate Jalali end date (Y/m/d format, e.g., '1405/01/01')
+     * @param string $unit Unit of difference ('day', 'week', 'month', 'year')
+     * @return int|float Difference in the specified unit (absolute value)
+     */
+    public static function diff($startDate, $endDate, $unit = 'day')
     {
-        $mod = $year % 33;
-        return in_array($mod, [1, 5, 9, 13, 17, 22, 26, 30]);
+        try {
+            // Convert Jalali dates to Gregorian
+            $startGregorian = self::toGregorian($startDate);
+            $endGregorian = self::toGregorian($endDate);
+
+            // Create DateTime objects
+            $start = new DateTime($startGregorian);
+            $end = new DateTime($endGregorian);
+
+            // Calculate difference
+            $interval = $start->diff($end);
+
+            // Return difference based on unit
+            switch (strtolower($unit)) {
+                case 'day':
+                    return abs($interval->days);
+                case 'week':
+                    return abs($interval->days / 7);
+                case 'month':
+                    // Approximate months based on years and months
+                    $months = $interval->y * 12 + $interval->m;
+                    // Add fractional months based on remaining days
+                    if ($interval->d > 0) {
+                        $daysInMonth = self::getJalaliMonthDays($interval->m + 1, $interval->y);
+                        $months += $interval->d / $daysInMonth;
+                    }
+                    return abs($months);
+                case 'year':
+                    // Approximate years based on months
+                    $months = $interval->y * 12 + $interval->m;
+                    if ($interval->d > 0) {
+                        $daysInMonth = self::getJalaliMonthDays($interval->m + 1, $interval->y);
+                        $months += $interval->d / $daysInMonth;
+                    }
+                    return abs($months / 12);
+                default:
+                    return 'Invalid unit';
+            }
+        } catch (Exception $e) {
+            return 'Invalid date';
+        }
+    }
+
+    /**
+     * Convert Julian Day to Jalali date.
+     *
+     * @param int $julianDay
+     * @return array [year, month, day]
+     */
+    private static function julianToJalali($julianDay)
+    {
+        $julianDay = floor($julianDay) + 0.5;
+
+        $depoch = $julianDay - 2121446;
+
+        // Calculate year
+        $cycle = floor($depoch / 1029983);
+        $cyear = $depoch % 1029983;
+        $ycycle = floor($cyear / 36524);
+        $aux1 = $cyear % 36524;
+        $aux2 = floor($aux1 / 365);
+        $year = $cycle * 2820 + $ycycle * 128 + $aux2 + 474;
+
+        // Calculate day and month
+        $yday = $julianDay - gregoriantojd(1, 1, $year - 474) + 1;
+        $month = $yday <= 186 ? ceil($yday / 31) : ceil(($yday - 6) / 30);
+        $day = $yday - ($month - 1) * 31 - floor($month / 7) * ($month > 7 ? 1 : 0);
+
+        return [(int) $year, (int) $month, (int) $day];
+    }
+
+    /**
+     * Convert Jalali date to Julian Day.
+     *
+     * @param int $year
+     * @param int $month
+     * @param int $day
+     * @return int
+     */
+    private static function jalaliToJulian($year, $month, $day)
+    {
+        $depoch = $year - 474;
+        $cycle = floor($depoch / 2820);
+        $cyear = $depoch % 2820;
+        $ycycle = floor($cyear / 128);
+        $aux1 = $cyear % 128;
+        $yday = floor(($aux1 * 365 + floor($aux1 / 4) + 1 + ($month - 1) * 31 - floor($month / 7) * ($month > 7 ? 1 : 0) + $day - 1));
+        $julianDay = $cycle * 1029983 + $ycycle * 46751 + $yday + 2121446;
+
+        return $julianDay;
+    }
+
+    /**
+     * Format Jalali date according to the specified format.
+     *
+     * @param array $jalaliDate [year, month, day]
+     * @param string $format
+     * @return string
+     */
+    private static function formatJalaliDate($jalaliDate, $format)
+    {
+        [$year, $month, $day] = $jalaliDate;
+        $format = str_replace(['Y', 'm', 'd'], ['%04d', '%02d', '%02d'], $format);
+        return sprintf($format, $year, $month, $day);
+    }
+
+    /**
+     * Get number of days in a Jalali month.
+     *
+     * @param int $month
+     * @param int $year
+     * @return int
+     */
+    private static function getJalaliMonthDays($month, $year)
+    {
+        if ($month >= 1 && $month <= 6) {
+            return 31; // Months 1-6 have 31 days
+        }
+        if ($month >= 7 && $month <= 11) {
+            return 30; // Months 7-11 have 30 days
+        }
+        if ($month == 12) {
+            return self::isJalaliLeapYear($year) ? 30 : 29; // Esfand: 29 or 30 in leap year
+        }
+        return 0; // Invalid month
+    }
+
+    /**
+     * Check if a Jalali year is a leap year.
+     *
+     * @param int $year
+     * @return bool
+     */
+    private static function isJalaliLeapYear($year)
+    {
+        // Algorithm for Jalali leap year
+        $remainder = fmod($year * 8 + 21, 33);
+        return $remainder < 8;
     }
 }
