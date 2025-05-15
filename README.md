@@ -1,19 +1,38 @@
-# JalaliFlow
+# JalaliFlow Documentation
 
-**JalaliFlow** is a Laravel package designed for advanced management of the Jalali (Persian) calendar. It provides utilities to convert dates between Gregorian and Jalali calendars, manipulate Jalali dates, calculate differences between dates, and check for Persian holidays. The package is lightweight and integrates seamlessly with Laravel applications.
+**JalaliFlow** is a powerful Laravel package designed to handle Persian (Jalali) calendar operations with ease. It provides advanced date conversion, holiday management, and event scheduling, seamlessly integrated with Laravel’s ecosystem. With support for multiple calendars (Jalali, Gregorian, etc.), multilingual formatting, and developer-friendly tools, JalaliFlow is ideal for projects targeting Persian-speaking audiences or requiring cross-calendar functionality.
+
+## Table of Contents
+- [Features](#features)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Usage](#usage)
+    - [Converting Dates](#converting-dates)
+    - [Checking Holidays](#checking-holidays)
+    - [Managing Events](#managing-events)
+    - [Eloquent Trait](#eloquent-trait)
+    - [Artisan Command](#artisan-command)
+- [Advanced Usage](#advanced-usage)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## Features
-- Convert Gregorian dates to Jalali and vice versa.
-- Add or subtract days, weeks, months, or years to Jalali dates, respecting Persian calendar rules (e.g., variable month lengths and leap years).
-- Calculate the difference between two Jalali dates in days, weeks, months, or years.
-- Check if a Jalali date is a holiday (e.g., Norouz).
-- Artisan command to list holidays for a given year.
-- Trait to automatically convert model dates to Jalali format.
+- **Date Conversion**: Convert between Jalali, Gregorian, and other calendars with customizable formats.
+- **Holiday Management**: Check official Persian holidays with a preloaded list (extendable via APIs).
+- **Event Scheduling**: Add and manage events with support for repetition (daily, weekly, etc.).
+- **Laravel Integration**:
+    - Eloquent Trait for automatic date conversion in models.
+    - Artisan command for listing holidays.
+    - Blade directives and middleware for locale-aware date handling.
+- **Multilingual Support**: Display dates in Persian, English, Arabic, or other languages.
+- **Configurable**: Customize date formats, timezones, and locales via a configuration file.
+- **Extensible**: Integrate with external APIs (e.g., Google Calendar) for advanced functionality.
 
 ## Requirements
-- PHP 8.1 or higher
-- Laravel 9.x, 10.x, 11.x, or 12.x
-- PHP Calendar extension (`ext-calendar`) enabled
+- PHP 8.0 or higher
+- Laravel 9.0 or 10.0
+- Composer
 
 ## Installation
 1. Install the package via Composer:
@@ -25,121 +44,179 @@
    ```bash
    php artisan vendor:publish --tag=config
    ```
-   This will create a `config/jalaliflow.php` file where you can customize settings, such as holiday lists.
+   This will create a `config/jalaliflow.php` file for customizing settings.
 
-3. (Optional) Add the `JalaliDate` trait to your Eloquent models to automatically convert dates to Jalali format:
+3. (Optional) Add the facade to your `config/app.php` (if not auto-registered):
    ```php
-   use PicoBaz\JalaliFlow\Traits\JalaliDate;
-
-   class Post extends Model
-   {
-       use JalaliDate;
-   }
+   'aliases' => [
+       'JalaliFlow' => PicoBaz\JalaliFlow\Facades\JalaliFlow::class,
+   ],
    ```
 
-## Usage
-Below are examples of the main features provided by **JalaliFlow**.
-
-### Converting Dates
-- **Gregorian to Jalali:**
-  ```php
-  use PicoBaz\JalaliFlow\Facades\JalaliFlow;
-
-  echo JalaliFlow::toJalali('2025-05-14'); // Output: 1404/02/24
-  echo JalaliFlow::toJalali('2025-05-14', 'Y-m-d'); // Output: 1404-02-24
-  ```
-
-- **Jalali to Gregorian:**
-  ```php
-  echo JalaliFlow::toGregorian('1404/02/24'); // Output: 2025-05-14
-  ```
-
-### Manipulating Jalali Dates
-- **Add Days:**
-  ```php
-  echo JalaliFlow::addDay('1404/02/24', 5); // Output: 1404/02/29
-  echo JalaliFlow::addDay('1404/12/29', 1); // Output: 1405/01/01 (handles year boundary)
-  echo JalaliFlow::addDay('1403/12/29', 1); // Output: 1403/12/30 (handles leap year)
-  ```
-
-- **Add Weeks:**
-  ```php
-  echo JalaliFlow::addWeek('1404/02/24', 2); // Output: 1404/03/07
-  ```
-
-- **Add Months:**
-  ```php
-  echo JalaliFlow::addMonth('1404/02/24', 1); // Output: 1404/03/24
-  echo JalaliFlow::addMonth('1404/12/01', 1); // Output: 1405/01/01
-  ```
-
-- **Add Years:**
-  ```php
-  echo JalaliFlow::addYear('1404/02/24', 1); // Output: 1405/02/24
-  ```
-
-**Note:** All manipulation methods handle Persian calendar rules, such as 31-day months (1-6), 30-day months (7-11), and 29/30-day Esfand in leap years. Negative numbers can be used to subtract (e.g., `addDay('1404/02/24', -5)`).
-
-### Calculating Difference Between Dates
-- **Difference in Days, Weeks, Months, or Years:**
-  ```php
-  echo JalaliFlow::diff('1404/02/24', '1405/01/01', 'day');   // Output: ~312
-  echo JalaliFlow::diff('1404/02/24', '1405/01/01', 'week');  // Output: ~44.57
-  echo JalaliFlow::diff('1404/02/24', '1405/01/01', 'month'); // Output: ~10.3
-  echo JalaliFlow::diff('1404/02/24', '1405/01/01', 'year');  // Output: ~0.86
-  ```
-
-**Note:** The `diff` method returns absolute values. Month and year calculations are approximate due to variable month lengths in the Persian calendar.
-
-### Checking Holidays
-- **Check if a date is a holiday:**
-  ```php
-  echo JalaliFlow::isHoliday('1404/01/01') ? 'Holiday' : 'Not a holiday'; // Output: Holiday (Norouz)
-  ```
-
-- **List holidays for a year using Artisan command:**
-  ```bash
-  php artisan jalali:holidays 1404
-  ```
-  This will display holidays defined in `config/jalaliflow.php`.
-
-### Using the JalaliDate Trait
-- Automatically convert model dates to Jalali:
-  ```php
-  $post = Post::create(['created_at' => '2025-05-14']);
-  echo $post->jalali_created_at; // Output: 1404/02/24
-  ```
-
 ## Configuration
-After publishing the configuration file (`config/jalaliflow.php`), you can customize the list of holidays or other settings:
+The `config/jalaliflow.php` file allows you to customize the package’s behavior. Default settings include:
+
 ```php
 return [
-    'holidays' => [
-        '1404/01/01' => 'Norouz',
-        '1404/01/02' => 'Norouz',
-        // Add more holidays
-    ],
+    'date_format' => 'Y/m/d', // Default Jalali date format
+    'locale' => 'fa',        // Default language for date display
+    'timezone' => 'Asia/Tehran', // Default timezone
 ];
 ```
 
-## Troubleshooting
-- **Calendar Extension Missing:** Ensure the PHP Calendar extension is enabled by adding `extension=calendar` to your `php.ini` file and restarting your server.
-- **Invalid Date Errors:** Ensure dates are in the correct format (`Y/m/d` for Jalali, `Y-m-d` for Gregorian).
-- **Composer Issues:** Verify that your Laravel version (9.x, 10.x, 11.x, or 12.x) is compatible with the package.
+You can modify these settings to suit your project’s needs, such as changing the date format to `Y-m-d` or setting the locale to `en` for English.
+
+## Usage
+
+### Converting Dates
+Convert Gregorian dates to Jalali and vice versa using the `JalaliFlow` facade.
+
+```php
+use PicoBaz\JalaliFlow\Facades\JalaliFlow;
+
+// Convert Gregorian to Jalali
+$jalaliDate = JalaliFlow::toJalali('2025-05-14'); // Output: 1404/02/24
+
+// Convert Jalali to Gregorian
+$gregorianDate = JalaliFlow::toGregorian('1404/02/24'); // Output: 2025-05-14
+
+// Custom format
+$formattedDate = JalaliFlow::toJalali('2025-05-14', 'l، d F Y'); // Output: سه‌شنبه، 24 اردیبهشت 1404
+```
+### Calculate Difference Between Dates
+- `diff($startDate, $endDate, $unit = 'day')`: Calculate the difference between two Jalali dates in days, weeks, months, or years.
+  ```php
+  echo JalaliFlow::diff('1404/02/24', '1405/01/01', 'day');   // ~312
+  echo JalaliFlow::diff('1404/02/24', '1405/01/01', 'week');  // ~44.57
+  echo JalaliFlow::diff('1404/02/24', '1405/01/01', 'month'); // ~10.3
+  echo JalaliFlow::diff('1404/02/24', '1405/01/01', 'year');  // ~0.86
+  ```
+
+### Adding Days, Weeks, Months, or Years
+- `addDay($jalaliDate, $number)`: Add or subtract days.
+- `addWeek($jalaliDate, $number)`: Add or subtract weeks.
+- `addMonth($jalaliDate, $number)`: Add or subtract months, respecting variable month lengths.
+- `addYear($jalaliDate, $number)`: Add or subtract years.
+
+```php
+echo JalaliFlow::addDay('1404/02/24', 5); // Output: 1404/02/29
+echo JalaliFlow::addMonth('1404/12/01', 1); // Output: 1405/01/01
+````
+### Checking Holidays
+Check if a specific Jalali date is a holiday (based on a preloaded list).
+
+```php
+$isHoliday = JalaliFlow::isHoliday('1404/01/01'); // Output: true (Norouz)
+$isHoliday = JalaliFlow::isHoliday('1404/02/24'); // Output: false
+```
+
+> **Note**: The holiday list is static in this version. To fetch real-time holidays, integrate with an external API (see [Advanced Usage](#advanced-usage)).
+
+### Managing Events
+Add and manage events with optional repetition.
+
+```php
+$event = JalaliFlow::addEvent([
+    'title' => 'Team Meeting',
+    'date' => '1404/02/25',
+    'repeat' => 'weekly',
+]);
+
+// Output: ['title' => 'Team Meeting', 'date' => '1404/02/25', 'repeat' => 'weekly']
+```
+
+> **Note**: This is a basic implementation. For persistent storage, consider integrating with a database or Google Calendar.
+
+### Eloquent Trait
+Use the `JalaliDate` trait to automatically convert dates in your Eloquent models.
+
+```php
+use Illuminate\Database\Eloquent\Model;
+use PicoBaz\JalaliFlow\Traits\JalaliDate;
+
+class Post extends Model
+{
+    use JalaliDate;
+}
+```
+
+Access the `jalali_date` attribute to get the `created_at` date in Jalali format:
+
+```php
+$post = Post::first();
+echo $post->jalali_date; // Output: 1404/02/24
+```
+
+### Artisan Command
+List holidays for a specific Jalali year using the provided Artisan command.
+
+```bash
+php artisan jalali:holidays 1404
+```
+
+Output:
+```
+Holidays for 1404:
+1404/01/01: Norouz
+1404/01/02: Norouz
+```
+
+## Advanced Usage
+### Custom Date Formats
+Override the default format in your code or configuration:
+
+```php
+$customDate = JalaliFlow::toJalali('2025-05-14', 'Y-m-d H:i:s'); // Output: 1404-02-24 00:00:00
+```
+
+### Integrating with Google Calendar
+To sync events with Google Calendar, you’ll need to set up OAuth credentials and use a library like `google/apiclient`. Example (requires additional setup):
+
+```php
+use Google\Client;
+use Google\Service\Calendar;
+
+$client = new Client();
+// Configure OAuth credentials
+$service = new Calendar($client);
+
+$event = new \Google\Service\Calendar\Event([
+    'summary' => 'Team Meeting',
+    'start' => ['date' => JalaliFlow::toGregorian('1404/02/25')],
+    'end' => ['date' => JalaliFlow::toGregorian('1404/02/25')],
+]);
+
+$calendarId = 'primary';
+$service->events->insert($calendarId, $event);
+```
+
+### Extending Holiday Data
+To fetch holidays dynamically, integrate with an API (e.g., a government holiday API). Example using Guzzle:
+
+```php
+use GuzzleHttp\Client;
+
+$client = new Client();
+$response = $client->get('https://api.example.com/holidays/1404');
+$holidays = json_decode($response->getBody(), true);
+
+// Update JalaliFlow holidays
+JalaliFlow::setHolidays($holidays);
+```
 
 ## Contributing
-Contributions are welcome! Please follow these steps:
-1. Fork the repository: `https://github.com/PicoBaz/JalaliFlow`
-2. Create a new branch: `git checkout -b feature/your-feature`
-3. Commit your changes: `git commit -m "Add your feature"`
-4. Push to the branch: `git push origin feature/your-feature`
+We welcome contributions! To contribute:
+1. Fork the repository at [https://github.com/PicoBaz/jalaliflow](https://github.com/PicoBaz/JalaliFlow).
+2. Create a feature branch (`git checkout -b feature/YourFeature`).
+3. Commit your changes (`git commit -m "Add YourFeature"`).
+4. Push to the branch (`git push origin feature/YourFeature`).
 5. Open a pull request.
 
-## License
-This package is open-source software licensed under the [MIT License](LICENSE).
+Please include tests and update the documentation for new features.
 
-## Contact
-For questions or support, contact the maintainer:
-- Name: PicoBaz
-- Email: picobaz3@gmail.com
-- GitHub: [PicoBaz](https://github.com/PicoBaz)
+## License
+JalaliFlow is open-source software licensed under the [MIT License](LICENSE).
+
+---
+
+**Support**: For questions or issues, create a GitHub issue at [https://github.com/PicoBaz/JalaliFlow/issues](https://github.com/PicoBaz/JalaliFlow/issues) or contact us at [picobaz3@gmail.com](picobaz3@gmail.com).
