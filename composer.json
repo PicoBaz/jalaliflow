@@ -4,7 +4,7 @@
     "type": "library",
     "license": "MIT",
     "keywords": ["laravel", "jalali", "persian", "calendar", "date", "events"],
-    "version": "1.0.7",
+    "version": "1.0.8",
     "autoload": {
         "psr-4": {
             "PicoBaz\\JalaliFlow\\": "src/"
