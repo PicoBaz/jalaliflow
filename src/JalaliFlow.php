@@ -274,13 +274,19 @@ class JalaliFlow
             $newYear--;
         }
 
+        // Handle edge cases for days (e.g., 29th of Esfand in non-leap year)
         $maxDays = self::getJalaliMonthDays($newMonth, $newYear);
         if ($day > $maxDays) {
             $day = $maxDays;
         }
 
+        // Validate the new date
         $newJalaliDate = sprintf('%04d/%02d/%02d', $newYear, $newMonth, $day);
-        return self::toJalali(self::toGregorian($newJalaliDate));
+        if (!self::validateJalaliDate($newJalaliDate)) {
+            throw new RuntimeException('Calculated Jalali date is invalid.');
+        }
+
+        return $newJalaliDate;
     }
 
     /**
