@@ -15,25 +15,26 @@ class JalaliFlow
      * @param string $format Jalali date format (default: 'Y/m/d')
      * @return string Jalali date
      */
-    public static function toJalali($gregorianDate, $format = 'Y/m/d')
+    public function toJalali($gregorianDate, $format = 'Y/m/d')
     {
-        try {
-            $date = new DateTime($gregorianDate);
-            $gregorianYear = (int) $date->format('Y');
-            $gregorianMonth = (int) $date->format('m');
-            $gregorianDay = (int) $date->format('d');
-
-            // Convert to Julian Day
-            $julianDay = gregoriantojd($gregorianMonth, $gregorianDay, $gregorianYear);
-
-            // Convert Julian Day to Jalali
-            $jalaliDate = self::julianToJalali($julianDay);
-
-            // Format the output
-            return self::formatJalaliDate($jalaliDate, $format);
-        } catch (Exception $e) {
-            return 'Invalid Gregorian date';
+        if (!$gregorianDate || !is_string($gregorianDate)) {
+            return null; // یا خطا
         }
+
+        // تبدیل تاریخ میلادی به آرایه [سال، ماه، روز]
+        $gregorian = explode('-', $gregorianDate);
+        if (count($gregorian) !== 3) {
+            return null; // یا خطا
+        }
+
+        list($year, $month, $day) = array_map('intval', $gregorian);
+
+        // تبدیل به تاریخ جلالی
+        $jd = gregoriantojd($month, $day, $year);
+        $jalali = $this->jdToJalali($jd);
+
+        // فرمت‌بندی خروجی
+        return sprintf($format, $jalali[0], $jalali[1], $jalali[2]);
     }
 
     /**
