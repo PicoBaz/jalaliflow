@@ -102,6 +102,27 @@ $formattedDate = JalaliFlow::toJalali('2025-05-14', 'l، d F Y'); // Output: س�
 echo JalaliFlow::addDay('1404/02/24', 5); // Output: 1404/02/29
 echo JalaliFlow::addMonth('1404/12/01', 1); // Output: 1405/01/01
 ````
+
+### Subtracting Days, Weeks, Months, or Years
+- `subDay($jalaliDate, $number)`: Subtract a number of days from a Jalali date.
+- `subWeek($jalaliDate, $number)`: Subtract a number of weeks.
+- `subMonth($jalaliDate, $number)`: Subtract a number of months, respecting variable month lengths.
+- `subYear($jalaliDate, $number)`: Subtract a number of years.
+
+```php
+echo JalaliFlow::subDay('1404/02/24', 5);   // Output: 1404/02/19
+echo JalaliFlow::subWeek('1404/02/24', 2);  // Output: 1404/02/10
+echo JalaliFlow::subMonth('1404/02/24', 1); // Output: 1404/01/24
+echo JalaliFlow::subYear('1404/02/24', 1);  // Output: 1403/02/24
+```
+
+### Validating Jalali Dates
+- `validateJalaliDate($jalaliDate)`: Check if a Jalali date is valid.
+```php
+echo JalaliFlow::validateJalaliDate('1404/02/24') ? 'Valid' : 'Invalid'; // Output: Valid
+echo JalaliFlow::validateJalaliDate('1404/12/31') ? 'Valid' : 'Invalid'; // Output: Invalid
+```
+
 ### Checking Holidays
 Check if a specific Jalali date is a holiday (based on a preloaded list).
 

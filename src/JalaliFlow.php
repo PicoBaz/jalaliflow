@@ -321,4 +321,106 @@ class JalaliFlow
         $remainder = fmod($year * 8 + 21, 33);
         return $remainder < 8;
     }
+
+    /**
+     * Validate a Jalali date.
+     *
+     * @param string $jalaliDate Jalali date (Y/m/d format, e.g., '1404/02/24')
+     * @return bool True if valid, false otherwise
+     */
+    public static function validateJalaliDate($jalaliDate)
+    {
+        // Check format (YYYY/MM/DD)
+        if (!preg_match('/^\d{4}\/\d{2}\/\d{2}$/', $jalaliDate)) {
+            return false;
+        }
+
+        // Parse date
+        [$year, $month, $day] = array_map('intval', explode('/', $jalaliDate));
+
+        // Validate ranges
+        if ($year < 1300 || $year > 1500 || $month < 1 || $month > 12 || $day < 1) {
+            return false;
+        }
+
+        // Check day against max days in month
+        $maxDays = self::getJalaliMonthDays($month, $year);
+        return $day <= $maxDays;
+    }
+
+    /**
+     * Subtract days from a Jalali date.
+     *
+     * @param string $jalaliDate Jalali date (Y/m/d format, e.g., '1404/02/24')
+     * @param int $number Number of days to subtract
+     * @return string New Jalali date
+     */
+    public static function subDay($jalaliDate, $number)
+    {
+        try {
+            if (!self::validateJalaliDate($jalaliDate)) {
+                return 'Invalid date';
+            }
+            return self::addDay($jalaliDate, -$number);
+        } catch (Exception $e) {
+            return 'Invalid date';
+        }
+    }
+
+    /**
+     * Subtract weeks from a Jalali date.
+     *
+     * @param string $jalaliDate Jalali date (Y/m/d format)
+     * @param int $number Number of weeks to subtract
+     * @return string New Jalali date
+     */
+    public static function subWeek($jalaliDate, $number)
+    {
+        try {
+            if (!self::validateJalaliDate($jalaliDate)) {
+                return 'Invalid date';
+            }
+            return self::addWeek($jalaliDate, -$number);
+        } catch (Exception $e) {
+            return 'Invalid date';
+        }
+    }
+
+    /**
+     * Subtract months from a Jalali date.
+     *
+     * @param string $jalaliDate Jalali date (Y/m/d format)
+     * @param int $number Number of months to subtract
+     * @return string New Jalali date
+     */
+    public static function subMonth($jalaliDate, $number)
+    {
+        try {
+            if (!self::validateJalaliDate($jalaliDate)) {
+                return 'Invalid date';
+            }
+            return self::addMonth($jalaliDate, -$number);
+        } catch (Exception $e) {
+            return 'Invalid date';
+        }
+    }
+
+    /**
+     * Subtract years from a Jalali date.
+     *
+     * @param string $jalaliDate Jalali date (Y/m/d format)
+     * @param int $number Number of years to subtract
+     * @return string New Jalali date
+     */
+    public static function subYear($jalaliDate, $number)
+    {
+        try {
+            if (!self::validateJalaliDate($jalaliDate)) {
+                return 'Invalid date';
+            }
+            return self::addYear($jalaliDate, -$number);
+        } catch (Exception $e) {
+            return 'Invalid date';
+        }
+    }
 }
