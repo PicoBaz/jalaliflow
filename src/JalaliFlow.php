@@ -11,6 +11,14 @@ use PicoBaz\JalaliFlow\JalaliEvent;
 class JalaliFlow
 {
     /**
+     * Static storage for custom holidays.
+     *
+     * @var array
+     */
+    private static $customHolidays = [];
+    
+    
+    /**
      * Convert Gregorian date to Jalali with JDF-inspired formatting.
      *
      * @param string|int $gregorianDate Gregorian date (Y-m-d format, e.g., '2025-05-14') or Unix timestamp
@@ -167,6 +175,42 @@ class JalaliFlow
         return sprintf('%04d-%02d-%02d', $g_y, $g_m, $g_d);
     }
 
+
+
+    /**
+     * Get holidays for a given Jalali year.
+     *
+     * @param int $year Jalali year (e.g., 1404)
+     * @return array List of holidays [date => description]
+     */
+    public static function getHolidays(int $year): array
+    {
+        // Official Iranian holidays (simplified for 1403-1405)
+        $holidays = [
+            "$year/01/01" => "نوروز",
+            "$year/01/02" => "نوروز",
+            "$year/01/03" => "نوروز",
+            "$year/01/04" => "نوروز",
+            "$year/01/13" => "روز طبیعت",
+            "$year/12/29" => "روز ملی شدن صنعت نفت", // Adjust for leap year
+            "$year/12/30" => "روز ملی شدن صنعت نفت", // For leap years
+        ];
+
+        // Add custom holidays
+        $holidays = array_merge($holidays, self::$customHolidays);
+
+        // Filter holidays by year
+        $filteredHolidays = [];
+        foreach ($holidays as $date => $description) {
+            if (strpos($date, "$year/") === 0 && self::validateJalaliDate($date)) {
+                $filteredHolidays[$date] = $description;
+            }
+        }
+
+        return $filteredHolidays;
+    }
+
+
     /**
      * Check if a Jalali date is a holiday.
      *
@@ -179,23 +223,60 @@ class JalaliFlow
             return false;
         }
 
-        $holidays = self::getHolidays();
-        return isset($holidays[$jalaliDate]);
+        [$year] = array_map('intval', explode('/', $jalaliDate));
+        $holidays = self::getHolidays($year);
+
+        return array_key_exists($jalaliDate, $holidays);
     }
 
+
     /**
-     * Get list of holidays.
+     * Add a custom holiday.
      *
-     * @return array
+     * @param string $jalaliDate Jalali date (Y/m/d format)
+     * @param string $description Holiday description
+     * @return void
+     * @throws InvalidArgumentException
      */
-    public static function getHolidays(): array
+    public static function addCustomHoliday(string $jalaliDate, string $description): void
     {
-        return [
-            '1404/01/01' => 'Norouz',
-            '1404/01/02' => 'Norouz',
-            // Add more holidays as needed
-        ];
+        if (!self::validateJalaliDate($jalaliDate)) {
+            throw new InvalidArgumentException('Invalid Jalali date. Use Y/m/d format.');
+        }
+
+        if (empty($description)) {
+            throw new InvalidArgumentException('Holiday description cannot be empty.');
+        }
+
+        self::$customHolidays[$jalaliDate] = $description;
     }
+
+
+    /**
+     * Check if a Jalali date is a working day (not a holiday or Friday).
+     *
+     * @param string $jalaliDate Jalali date (Y/m/d format)
+     * @return bool
+     */
+    public static function isWorkingDay(string $jalaliDate): bool
+    {
+        if (!self::validateJalaliDate($jalaliDate)) {
+            return false;
+        }
+
+        // Check if it's a holiday
+        if (self::isHoliday($jalaliDate)) {
+            return false;
+        }
+
+        // Check if it's Friday (day 6 in Jalali calendar)
+        $gregorianDate = self::toGregorian($jalaliDate);
+        $dayOfWeek = (int)date('w', strtotime($gregorianDate));
+        $isFriday = ($dayOfWeek == 5); // Friday in Gregorian maps to 5
+
+        return !$isFriday;
+    }
+
 
     /**
      * Add days to a Jalali date.

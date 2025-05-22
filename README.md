@@ -151,14 +151,85 @@ echo JalaliFlow::toRelativeJalali('2025-05-24'); // Output: ۲ روز بعد
 echo JalaliFlow::toRelativeJalali('2025-05-19'); // Output: ۳ روز پیش
 echo JalaliFlow::toRelativeJalali('2025-05-19', 'Asia/Tehran', 'en'); // Output: 3 days ago
 ```
-### Checking Holidays
-Check if a Jalali date is a holiday based on the configured holiday list.
 
-```php
-echo JalaliFlow::isHoliday('1404/01/01') ? 'Holiday' : 'Not a holiday'; // Output: Holiday (Norouz)
-echo JalaliFlow::isHoliday('1404/02/24') ? 'Holiday' : 'Not a holiday'; // Output: Not a holiday
-```
+### Managing Holidays
 
+`JalaliFlow` provides powerful methods to manage official and custom holidays in the Jalali calendar. These are perfect for scheduling, reservation systems, or any application needing to track holidays and working days.
+
+- **Get holidays for a specific year:**
+  Retrieve a list of official and custom holidays for a given Jalali year.
+  ```php
+  use PicoBaz\JalaliFlow\Facades\JalaliFlow;
+
+  $holidays = JalaliFlow::getHolidays(1404);
+  foreach ($holidays as $date => $description) {
+      echo "$date: $description\n";
+  }
+  // Example output:
+  // 1404/01/01: نوروز
+  // 1404/01/02: نوروز
+  // 1404/01/03: نوروز
+  // 1404/01/04: نوروز
+  // 1404/01/13: روز طبیعت
+  // 1404/12/29: روز ملی شدن صنعت نفت
+  ```
+
+- **Check if a date is a holiday:**
+  Determine if a specific Jalali date is a holiday (official or custom).
+  ```php
+  use PicoBaz\JalaliFlow\Facades\JalaliFlow;
+
+  try {
+      $date = '1404/01/01';
+      echo JalaliFlow::isHoliday($date) ? "$date is a holiday" : "$date is not a holiday";
+      // Output: 1404/01/01 is a holiday
+
+      $date = '1404/02/24';
+      echo JalaliFlow::isHoliday($date) ? "$date is a holiday" : "$date is not a holiday";
+      // Output: 1404/02/24 is not a holiday
+  } catch (Exception $e) {
+      echo "Error: " . $e->getMessage();
+  }
+  ```
+
+- **Add a custom holiday:**
+  Add your own holidays to the calendar, such as company events or local celebrations.
+  ```php
+  use PicoBaz\JalaliFlow\Facades\JalaliFlow;
+
+  try {
+      JalaliFlow::addCustomHoliday('1404/06/15', 'Company Anniversary');
+      echo JalaliFlow::isHoliday('1404/06/15') ? 'Custom holiday added' : 'Failed to add holiday';
+      // Output: Custom holiday added
+
+      // Verify in holidays list
+      $holidays = JalaliFlow::getHolidays(1404);
+      echo isset($holidays['1404/06/15']) ? "Found: {$holidays['1404/06/15']}" : 'Not found';
+      // Output: Found: Company Anniversary
+  } catch (Exception $e) {
+      echo "Error: " . $e->getMessage();
+  }
+  ```
+
+- **Check if a date is a working day:**
+  Determine if a date is a working day (not a holiday and not a Friday, the official weekend in Iran).
+  ```php
+  use PicoBaz\JalaliFlow\Facades\JalaliFlow;
+
+  try {
+      $date = '1404/02/24';
+      echo JalaliFlow::isWorkingDay($date) ? "$date is a working day" : "$date is not a working day";
+      // Output: 1404/02/24 is a working day (assuming it's not a Friday)
+
+      $date = '1404/01/01';
+      echo JalaliFlow::isWorkingDay($date) ? "$date is a working day" : "$date is not a working day";
+      // Output: 1404/01/01 is not a working day (Nowruz holiday)
+  } catch (Exception $e) {
+      echo "Error: " . $e->getMessage();
+  }
+  ```
+
+**Note:** The `isWorkingDay` method considers Fridays as non-working days, as they are the official weekend in Iran. Ensure the date is in `Y/m/d` format (e.g., `1404/02/24`).
 ### Managing Events
 Schedule events to run daily, weekly, monthly, or yearly with database persistence.
 
