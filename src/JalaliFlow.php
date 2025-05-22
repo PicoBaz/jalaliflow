@@ -762,7 +762,189 @@ class JalaliFlow
                 return sprintf($translations[$lang]['days_ago'], abs($diffDays));
             case $diffDays > 0:
                 return sprintf($translations[$lang]['days_later'], $diffDays);
+            default :
+                return "none";
         }
+    }
+
+
+    /**
+     * Convert Gregorian or Jalali date to Hijri (Islamic) date.
+     *
+     * @param string|int $date Gregorian date (Y-m-d format or timestamp) or Jalali date (Y/m/d format)
+     * @param string $inputType Input type ('gregorian' or 'jalali')
+     * @param string $format Output format (e.g., 'Y/m/d')
+     * @param string $lang Language for numbers ('fa' for Persian, 'en' for English)
+     * @return string Formatted Hijri date
+     * @throws InvalidArgumentException
+     */
+    public static function toHijri($date, string $inputType = 'gregorian', string $format = 'Y/m/d', string $lang = 'fa'): string
+    {
+        // Convert input to Gregorian timestamp
+        $ts = is_numeric($date) ? (int)$date : strtotime($date);
+        if ($ts === false) {
+            throw new InvalidArgumentException('Invalid date or timestamp.');
+        }
+
+        if ($inputType === 'jalali') {
+            if (!self::validateJalaliDate($date)) {
+                throw new InvalidArgumentException('Invalid Jalali date. Use Y/m/d format.');
+            }
+            $gregorianDate = self::toGregorian($date);
+            $ts = strtotime($gregorianDate);
+            if ($ts === false) {
+                throw new InvalidArgumentException('Failed to convert Jalali date to Gregorian.');
+            }
+        }
+
+        // Extract Gregorian date components
+        $g_year = (int)date('Y', $ts);
+        $g_month = (int)date('n', $ts);
+        $g_day = (int)date('j', $ts);
+
+        // Convert Gregorian to Julian Day
+        $a = floor((14 - $g_month) / 12);
+        $y = $g_year + 4800 - $a;
+        $m = $g_month + 12 * $a - 3;
+        $jd = $g_day + floor((153 * $m + 2) / 5) + 365 * $y + floor($y / 4) - floor($y / 100) + floor($y / 400) - 32045;
+
+        // Convert Julian Day to Hijri
+        $d = $jd - 1948440 + 10632;
+        $n = floor($d / 10631);
+        $d = $d - 10631 * $n + 354;
+        $j = (floor((10985 - $d) / 5316)) * (floor((50 * $d) / 17719)) + (floor($d / 5670)) * (floor((43 * $d) / 15238));
+        $d = $d - (floor((30 - $j) / 15)) * (floor((17719 * $j) / 50)) - (floor($j / 16)) * (floor((15238 * $j) / 43)) + 29;
+        $h_month = floor((24 * $d) / 709);
+        $h_day = $d - floor((709 * $h_month) / 24);
+        $h_year = 30 * $n + $j - 30;
+
+        // Validate Hijri date
+        if ($h_year < 1 || $h_month < 1 || $h_month > 12 || $h_day < 1 || $h_day > 30) {
+            throw new InvalidArgumentException('Invalid Hijri date calculated.');
+        }
+
+        // Format output
+        if ($format === 'Y/m/d') {
+            return sprintf('%04d/%02d/%02d', $h_year, $h_month, $h_day);
+        }
+
+        $out = '';
+        $sl = strlen($format);
+        for ($i = 0; $i < $sl; $i++) {
+            $sub = substr($format, $i, 1);
+            if ($sub === '\\') {
+                $out .= substr($format, ++$i, 1);
+                continue;
+            }
+            switch ($sub) {
+                case 'd':
+                    $out .= $h_day < 10 ? '0' . $h_day : $h_day;
+                    break;
+                case 'm':
+                    $out .= $h_month < 10 ? '0' . $h_month : $h_month;
+                    break;
+                case 'Y':
+                    $out .= $h_year;
+                    break;
+                default:
+                    $out .= $sub;
+            }
+        }
+
+        return $lang === 'fa' ? self::trNum($out, 'fa') : $out;
+    }
+
+    /**
+     * Convert Hijri date to Gregorian or Jalali date.
+     *
+     * @param string $hijriDate Hijri date (Y/m/d format)
+     * @param string $outputType Output type ('gregorian' or 'jalali')
+     * @param string $format Output format (e.g., 'Y-m-d' for Gregorian, 'Y/m/d' for Jalali)
+     * @param string $lang Language for numbers ('fa' for Persian, 'en' for English)
+     * @return string Formatted Gregorian or Jalali date
+     * @throws InvalidArgumentException
+     */
+    public static function fromHijri(string $hijriDate, string $outputType = 'gregorian', string $format = 'Y-m-d', string $lang = 'fa'): string
+    {
+        if (!preg_match('/^\d{4}\/\d{2}\/\d{2}$/', $hijriDate)) {
+            throw new InvalidArgumentException('Invalid Hijri date. Use Y/m/d format.');
+        }
+
+        [$h_y, $h_m, $h_d] = array_map('intval', explode('/', $hijriDate));
+        if ($h_y < 1 || $h_m < 1 || $h_m > 12 || $h_d < 1 || $h_d > 30) {
+            throw new InvalidArgumentException('Invalid Hijri date values.');
+        }
+
+        // Convert Hijri to Julian Day
+        $jd = (int)((11 * $h_y + 3) / 30) + 354 * $h_y + 30 * $h_m - (int)($h_m / 12) + $h_d + 1948440 - 385;
+
+        // Convert Julian Day to Gregorian
+        $l = $jd + 68569;
+        $n = (int)((4 * $l) / 146097);
+        $l = $l - (int)((146097 * $n + 3) / 4);
+        $i = (int)((4000 * ($l + 1)) / 1461001);
+        $l = $l - (int)((1461 * $i) / 4) + 31;
+        $j = (int)((80 * $l) / 2447);
+        $d = $l - (int)((2447 * $j) / 80);
+        $l = (int)($j / 11);
+        $m = $j + 2 - 12 * $l;
+        $y = 100 * ($n - 49) + $i + $l;
+
+        $gregorianDate = sprintf('%04d-%02d-%02d', $y, $m, $d);
+
+        if ($outputType === 'jalali') {
+            return self::toJalali($gregorianDate, $format, 'Asia/Tehran', $lang);
+        }
+
+        // Format Gregorian output
+        $ts = strtotime($gregorianDate);
+        $out = '';
+        $sl = strlen($format);
+        for ($i = 0; $i < $sl; $i++) {
+            $sub = substr($format, $i, 1);
+            if ($sub === '\\') {
+                $out .= substr($format, ++$i, 1);
+                continue;
+            }
+            switch ($sub) {
+                case 'd':
+                    $out .= date('d', $ts);
+                    break;
+                case 'm':
+                    $out .= date('m', $ts);
+                    break;
+                case 'Y':
+                    $out .= date('Y', $ts);
+                    break;
+                default:
+                    $out .= $sub;
+            }
+        }
+
+        return $lang === 'fa' ? self::trNum($out, 'fa') : $out;
+    }
+
+    /**
+     * Check if a date is an Islamic holiday.
+     *
+     * @param string $date Gregorian or Jalali date (Y-m-d or Y/m/d format)
+     * @param string $inputType Input type ('gregorian' or 'jalali')
+     * @return bool
+     */
+    public static function isIslamicHoliday(string $date, string $inputType = 'gregorian'): bool
+    {
+        $hijriDate = self::toHijri($date, $inputType, 'Y/m/d');
+        [$h_y, $h_m, $h_d] = array_map('intval', explode('/', $hijriDate));
+
+        // Major Islamic holidays (simplified)
+        $islamicHolidays = [
+            "$h_y/01/01" => "First of Muharram",
+            "$h_y/01/10" => "Ashura",
+            "$h_y/10/01" => "Eid al-Fitr",
+            "$h_y/12/17" => "Eid al-Adha",
+        ];
+
+        return array_key_exists("$h_y/$h_m/$h_d", $islamicHolidays);
     }
 
 }

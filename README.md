@@ -321,7 +321,59 @@ Access the `jalali_date` attribute to get the `created_at` date in Jalali format
 $post = Post::first();
 echo $post->jalali_date; // Output: 1404/02/24
 ```
+### Managing Hijri (Islamic) Dates
 
+`JalaliFlow` supports conversion to and from Hijri (Islamic) dates, as well as checking for major Islamic holidays. This is ideal for religious or cultural applications.
+
+- **Convert to Hijri date:**
+  Convert a Gregorian or Jalali date to a Hijri date.
+  ```php
+  use PicoBaz\JalaliFlow\Facades\JalaliFlow;
+
+  try {
+      echo JalaliFlow::toHijri('2025-05-22', 'gregorian', 'Y/m/d');
+      // Output: 1446/11/14
+      echo JalaliFlow::toHijri('1404/02/24', 'jalali', 'Y/m/d');
+      // Output: 1446/11/14
+  } catch (Exception $e) {
+      echo "Error: " . $e->getMessage();
+  }
+  ```
+
+- **Convert from Hijri date:**
+  Convert a Hijri date to Gregorian or Jalali format.
+  ```php
+  use PicoBaz\JalaliFlow\Facades\JalaliFlow;
+
+  try {
+      echo JalaliFlow::fromHijri('1446/11/14', 'gregorian', 'Y-m-d');
+      // Output: 2025-05-22
+      echo JalaliFlow::fromHijri('1446/11/14', 'jalali', 'Y/m/d');
+      // Output: 1404/02/24
+  } catch (Exception $e) {
+      echo "Error: " . $e->getMessage();
+  }
+  ```
+
+- **Check for Islamic holidays:**
+  Determine if a date is a major Islamic holiday (e.g., Ashura, Eid al-Fitr).
+  ```php
+  use PicoBaz\JalaliFlow\Facades\JalaliFlow;
+
+  try {
+      $date = '1404/04/25'; // Approximate date for Ashura 1446
+      echo JalaliFlow::isIslamicHoliday($date, 'jalali') ? "$date is an Islamic holiday" : "$date is not an Islamic holiday";
+      // Output: 1404/04/25 is an Islamic holiday (if Ashura)
+
+      $date = '1404/02/24';
+      echo JalaliFlow::isIslamicHoliday($date, 'jalali') ? "$date is an Islamic holiday" : "$date is not an Islamic holiday";
+      // Output: 1404/02/24 is not an Islamic holiday
+  } catch (Exception $e) {
+      echo "Error: " . $e->getMessage();
+  }
+  ```
+
+**Note:** Hijri date conversions are approximate due to the simplified algorithm. For precise conversions, consider integrating with an external API. Dates must be in `Y/m/d` format for Hijri and Jalali, or `Y-m-d` for Gregorian.
 ### Artisan Command
 List holidays for a specific Jalali year:
 
