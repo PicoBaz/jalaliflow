@@ -16,8 +16,8 @@ class JalaliFlow
      * @var array
      */
     private static $customHolidays = [];
-    
-    
+
+
     /**
      * Convert Gregorian date to Jalali with JDF-inspired formatting.
      *
@@ -260,14 +260,12 @@ class JalaliFlow
      */
     public static function isWorkingDay(string $jalaliDate): bool
     {
+
         if (!self::validateJalaliDate($jalaliDate)) {
             return false;
         }
 
-        // Check if it's a holiday
-        if (self::isHoliday($jalaliDate)) {
-            return false;
-        }
+
 
         // Check if it's Friday (day 6 in Jalali calendar)
         $gregorianDate = self::toGregorian($jalaliDate);
@@ -506,26 +504,52 @@ class JalaliFlow
                 throw new InvalidArgumentException('Invalid frequency.');
         }
     }
-
     /**
-     * Validate a Jalali date (inspired by JDF's jcheckdate).
+     * Validate a Jalali date.
      *
-     * @param string $jalaliDate Jalali date (Y/m/d format, e.g., '1404/02/24')
-     * @return bool True if valid, false otherwise
+     * @param string $jalaliDate Jalali date (Y/m/d format)
+     * @return bool
+     * @throws InvalidArgumentException
      */
     public static function validateJalaliDate(string $jalaliDate): bool
     {
         if (!preg_match('/^\d{4}\/\d{2}\/\d{2}$/', $jalaliDate)) {
-            return false;
+            throw new InvalidArgumentException("Invalid Jalali date format: '$jalaliDate'. Use Y/m/d (e.g., 1404/02/24).");
         }
 
-        [$jy, $jm, $jd] = array_map('intval', explode('/', $jalaliDate));
-        if ($jy < 1300 || $jy > 1500 || $jm < 1 || $jm > 12 || $jd < 1) {
-            return false;
+        [$year, $month, $day] = array_map('intval', explode('/', $jalaliDate));
+
+        if ($year < 1300 || $year > 1500) {
+            throw new InvalidArgumentException("Invalid Jalali year: '$year'. Year must be between 1300 and 1500.");
         }
 
-        $l_d = ($jm == 12 && ((($jy + 12) % 33) % 4) != 1) ? 29 : (31 - (int)($jm / 6.5));
-        return $jd <= $l_d;
+        if ($month < 1 || $month > 12) {
+            throw new InvalidArgumentException("Invalid Jalali month: '$month'. Month must be between 1 and 12.");
+        }
+
+        if ($day < 1) {
+            throw new InvalidArgumentException("Invalid Jalali day: '$day'. Day must be positive.");
+        }
+
+//        $maxDays = ($month <= 6) ? 31 : (($month <= 11) ? 30 : (self::isJalaliLeapYear($year) ? 30 : 29));
+        $maxDays = 31;
+        if ($month <= 6){
+            $maxDays = 31;
+
+        }
+        else if ($month > 6 && $month <= 11){
+            $maxDays = 30;
+        }
+        else {
+            $maxDays = self::isJalaliLeapYear($year) ? 30 : 29;
+        }
+
+        if ($day > $maxDays) {
+
+            throw new InvalidArgumentException("Invalid Jalali day: '$day'. Day must not exceed $maxDays for month $month in year $year.");
+        }
+
+        return true;
     }
 
     /**
@@ -695,7 +719,8 @@ class JalaliFlow
      */
     private static function isJalaliLeapYear(int $year): bool
     {
-        return ((($year + 12) % 33) % 4) == 1;
+        $remainder = $year % 33;
+        return in_array($remainder, [1, 5, 9, 13, 17, 22, 26, 30]);
     }
 
 
@@ -945,6 +970,47 @@ class JalaliFlow
         ];
 
         return array_key_exists("$h_y/$h_m/$h_d", $islamicHolidays);
+    }
+    /**
+     * Calculate the number of working days between two Jalali dates.
+     *
+     * @param string $startDate Jalali start date (Y/m/d format)
+     * @param string $endDate Jalali end date (Y/m/d format)
+     * @return int Number of working days (including start date, excluding end date)
+     * @throws InvalidArgumentException
+     */
+    public static function workingDaysBetween(string $startDate, string $endDate): int
+    {
+        try {
+            self::validateJalaliDate($startDate);
+            self::validateJalaliDate($endDate);
+        } catch (InvalidArgumentException $e) {
+            throw new InvalidArgumentException($e->getMessage());
+        }
+
+        $startTs = strtotime(self::toGregorian($startDate));
+        $endTs = strtotime(self::toGregorian($endDate));
+
+        if ($startTs === false || $endTs === false) {
+            throw new InvalidArgumentException('Failed to convert dates to timestamps.');
+        }
+
+        if ($startTs > $endTs) {
+            throw new InvalidArgumentException('Start date must be before or equal to end date.');
+        }
+
+        $workingDays = 0;
+        $currentTs = $startTs;
+
+        while ($currentTs < $endTs) {
+            $currentJalali = self::toJalali($currentTs, 'Y/m/d');
+            if (self::isWorkingDay($currentJalali)) {
+                $workingDays++;
+            }
+            $currentTs = strtotime('+1 day', $currentTs);
+        }
+
+        return $workingDays;
     }
 
 }
