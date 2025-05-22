@@ -15,26 +15,25 @@ class JalaliFlow
      * @param string $format Jalali date format (default: 'Y/m/d')
      * @return string Jalali date
      */
-    public function toJalali($gregorianDate, $format = 'Y/m/d')
+    public static function toJalali($gregorianDate, $format = 'Y/m/d')
     {
-        if (!$gregorianDate || !is_string($gregorianDate)) {
-            return null; // یا خطا
+        try {
+            $date = new DateTime($gregorianDate);
+            $gregorianYear = (int) $date->format('Y');
+            $gregorianMonth = (int) $date->format('m');
+            $gregorianDay = (int) $date->format('d');
+
+            // Convert to Julian Day
+            $julianDay = gregoriantojd($gregorianMonth, $gregorianDay, $gregorianYear);
+
+            // Convert Julian Day to Jalali
+            $jalaliDate = self::julianToJalali($julianDay);
+
+            // Format the output
+            return self::formatJalaliDate($jalaliDate, $format);
+        } catch (Exception $e) {
+            return 'Invalid Gregorian date';
         }
-
-        // تبدیل تاریخ میلادی به آرایه [سال، ماه، روز]
-        $gregorian = explode('-', $gregorianDate);
-        if (count($gregorian) !== 3) {
-            return null; // یا خطا
-        }
-
-        list($year, $month, $day) = array_map('intval', $gregorian);
-
-        // تبدیل به تاریخ جلالی
-        $jd = gregoriantojd($month, $day, $year);
-        $jalali = $this->jdToJalali($jd);
-
-        // فرمت‌بندی خروجی
-        return sprintf($format, $jalali[0], $jalali[1], $jalali[2]);
     }
 
     /**
@@ -43,6 +42,7 @@ class JalaliFlow
      * @param string $jalaliDate Jalali date (Y/m/d format, e.g., '1404/02/24')
      * @return string Gregorian date (Y-m-d format)
      */
+
     public static function toGregorian($jalaliDate)
     {
         try {
@@ -50,16 +50,10 @@ class JalaliFlow
                 return 'Invalid Jalali date';
             }
 
-            // Parse Jalali date
             [$jalaliYear, $jalaliMonth, $jalaliDay] = array_map('intval', explode('/', $jalaliDate));
-
-            // Convert to Julian Day
             $julianDay = self::jalaliToJulian($jalaliYear, $jalaliMonth, $jalaliDay);
+            [$gregorianMonth, $gregorianDay, $gregorianYear] = array_map('intval', explode('/', jdtogregorian((int)$julianDay)));
 
-            // Convert Julian Day to Gregorian
-            [$gregorianMonth, $gregorianDay, $gregorianYear] = explode('/', jdtogregorian($julianDay));
-
-            // Format as Y-m-d
             return sprintf('%04d-%02d-%02d', $gregorianYear, $gregorianMonth, $gregorianDay);
         } catch (Exception $e) {
             return 'Invalid Jalali date';
@@ -295,37 +289,25 @@ class JalaliFlow
                 return 'Invalid Jalali date';
             }
 
-            // Convert Jalali dates to Gregorian
             $startGregorian = self::toGregorian($startDate);
             $endGregorian = self::toGregorian($endDate);
 
-            // Create DateTime objects
             $start = new DateTime($startGregorian);
             $end = new DateTime($endGregorian);
 
-            // Calculate difference
             $interval = $start->diff($end);
 
-            // Return difference based on unit
             switch (strtolower($unit)) {
                 case 'day':
                     return abs($interval->days);
                 case 'week':
                     return abs($interval->days / 7);
                 case 'month':
-                    $months = $interval->y * 12 + $interval->m;
-                    if ($interval->d > 0) {
-                        $daysInMonth = self::getJalaliMonthDays($interval->m + 1, $interval->y);
-                        $months += $interval->d / $daysInMonth;
-                    }
+                    $months = $interval->y * 12 + $interval->m + ($interval->d / 30);
                     return abs($months);
                 case 'year':
-                    $months = $interval->y * 12 + $interval->m;
-                    if ($interval->d > 0) {
-                        $daysInMonth = self::getJalaliMonthDays($interval->m + 1, $interval->y);
-                        $months += $interval->d / $daysInMonth;
-                    }
-                    return abs($months / 12);
+                    $years = $interval->y + ($interval->m / 12) + ($interval->d / 365);
+                    return abs($years);
                 default:
                     return 'Invalid unit';
             }
@@ -434,23 +416,35 @@ class JalaliFlow
     private static function julianToJalali($julianDay)
     {
         $julianDay = floor($julianDay) + 0.5;
-
-        $depoch = $julianDay - 2121446;
-
-        // Calculate year
+        $depoch = $julianDay - 1948320.5;
         $cycle = floor($depoch / 1029983);
         $cyear = $depoch % 1029983;
-        $ycycle = floor($cyear / 36524);
-        $aux1 = $cyear % 36524;
-        $aux2 = floor($aux1 / 365);
-        $year = $cycle * 2820 + $ycycle * 128 + $aux2 + 474;
 
-        // Calculate day and month
-        $yday = $julianDay - gregoriantojd(1, 1, $year - 474) + 1;
-        $month = $yday <= 186 ? ceil($yday / 31) : ceil(($yday - 6) / 30);
-        $day = $yday - ($month - 1) * 31 - floor($month / 7) * ($month > 7 ? 1 : 0);
+        if ($cyear == 1029982) {
+            $ycycle = 2820;
+        } else {
+            $aux1 = floor($cyear / 366);
+            $aux2 = $cyear % 366;
+            $ycycle = floor((2134 * $aux1 + 2816 * $aux2 + 2815) / 1028522) + $aux1 + 1;
+        }
 
-        return [(int) $year, (int) $month, (int) $day];
+        $year = $ycycle + 2820 * $cycle + 474;
+        if ($year <= 0) {
+            $year--;
+        }
+
+        $jd1f = self::jalaliToJulian($year, 1, 1);
+        $dayOfYear = $julianDay - $jd1f + 1;
+
+        if ($dayOfYear <= 186) {
+            $month = ceil($dayOfYear / 31);
+            $day = $dayOfYear - 31 * ($month - 1);
+        } else {
+            $month = ceil(($dayOfYear - 186) / 30) + 6;
+            $day = $dayOfYear - 186 - 30 * ($month - 7);
+        }
+
+        return [(int)$year, (int)$month, (int)$day];
     }
 
     /**
@@ -463,15 +457,15 @@ class JalaliFlow
      */
     private static function jalaliToJulian($year, $month, $day)
     {
-        $depoch = $year - 474;
-        $cycle = floor($depoch / 2820);
-        $cyear = $depoch % 2820;
-        $ycycle = floor($cyear / 128);
-        $aux1 = $cyear % 128;
-        $yday = floor(($aux1 * 365 + floor($aux1 / 4) + 1 + ($month - 1) * 31 - floor($month / 7) * ($month > 7 ? 1 : 0) + $day - 1));
-        $julianDay = $cycle * 1029983 + $ycycle * 46751 + $yday + 2121446;
+        $epbase = $year - (($year >= 0) ? 474 : 473);
+        $epyear = 474 + ($epbase % 2820);
 
-        return $julianDay;
+        return $day +
+            (($month <= 7) ? (($month - 1) * 31) : ((($month - 1) * 30) + 6)) +
+            floor(($epyear * 682 - 110) / 2816) +
+            ($epyear - 1) * 365 +
+            floor($epbase / 2820) * 1029983 +
+            (1948320.5 - 1);
     }
 
     /**
