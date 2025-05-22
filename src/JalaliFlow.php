@@ -44,6 +44,11 @@ class JalaliFlow
             throw new RuntimeException('Invalid Jalali date calculated.');
         }
 
+        // Special handling for Y/m/d format to ensure two-digit month and day
+        if ($format === 'Y/m/d') {
+            return sprintf('%04d/%02d/%02d', $j_y, $j_m, $j_d);
+        }
+
         $out = '';
         $sl = strlen($format);
         for ($i = 0; $i < $sl; $i++) {
