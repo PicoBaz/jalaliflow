@@ -611,4 +611,72 @@ class JalaliFlow
     {
         return ((($year + 12) % 33) % 4) == 1;
     }
+
+
+
+    /**
+     * Convert Gregorian date to a relative Jalali string (e.g., "today", "yesterday").
+     *
+     * @param string|int $gregorianDate Gregorian date (Y-m-d format or timestamp)
+     * @param string $timezone Timezone (default: 'Asia/Tehran')
+     * @param string $lang Language ('fa' for Persian, 'en' for English)
+     * @return string Relative Jalali string
+     * @throws InvalidArgumentException
+     */
+    public static function toRelativeJalali($gregorianDate, string $timezone = 'Asia/Tehran', string $lang = 'fa'): string
+    {
+        if ($timezone !== 'local') {
+            date_default_timezone_set($timezone ?: 'Asia/Tehran');
+        }
+
+        // Handle timestamp or date string
+        $ts = is_numeric($gregorianDate) ? (int)$gregorianDate : ($gregorianDate ? strtotime($gregorianDate) : time());
+        if ($ts === false) {
+            throw new InvalidArgumentException('Invalid Gregorian date or timestamp.');
+        }
+
+        // Convert input and today to Jalali for comparison
+        $inputJalali = self::toJalali($ts, 'Y/m/d');
+        $todayJalali = self::toJalali(time(), 'Y/m/d');
+        [$inputYear, $inputMonth, $inputDay] = array_map('intval', explode('/', $inputJalali));
+        [$todayYear, $todayMonth, $todayDay] = array_map('intval', explode('/', $todayJalali));
+
+        // Calculate difference in days
+        $gregorianInput = self::toGregorian($inputJalali);
+        $gregorianToday = self::toGregorian($todayJalali);
+        $diffDays = (strtotime($gregorianInput) - strtotime($gregorianToday)) / (60 * 60 * 24);
+
+        $translations = [
+            'fa' => [
+                'today' => 'امروز',
+                'yesterday' => 'دیروز',
+                'tomorrow' => 'فردا',
+                'days_ago' => '%d روز پیش',
+                'days_later' => '%d روز بعد',
+            ],
+            'en' => [
+                'today' => 'Today',
+                'yesterday' => 'Yesterday',
+                'tomorrow' => 'Tomorrow',
+                'days_ago' => '%d days ago',
+                'days_later' => '%d days later',
+            ],
+        ];
+
+        $lang = isset($translations[$lang]) ? $lang : 'fa';
+
+        switch (true) {
+            case $diffDays == 0:
+                return $translations[$lang]['today'];
+            case $diffDays == -1:
+                return $translations[$lang]['yesterday'];
+            case $diffDays == 1:
+                return $translations[$lang]['tomorrow'];
+            case $diffDays < 0:
+                return sprintf($translations[$lang]['days_ago'], abs($diffDays));
+            case $diffDays > 0:
+                return sprintf($translations[$lang]['days_later'], $diffDays);
+        }
+    }
+
 }

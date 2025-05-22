@@ -137,7 +137,20 @@ Check if a Jalali date is valid.
 echo JalaliFlow::validateJalaliDate('1404/02/24') ? 'Valid' : 'Invalid'; // Output: Valid
 echo JalaliFlow::validateJalaliDate('1404/12/31') ? 'Valid' : 'Invalid'; // Output: Invalid
 ```
+### Displaying Relative Jalali Dates
 
+The `toRelativeJalali` method allows you to convert a Gregorian date to a relative Jalali string, such as "today", "yesterday", or "3 days ago". This is useful for user-friendly date displays in applications like chat or notification systems.
+
+```php
+use PicoBaz\JalaliFlow\Facades\JalaliFlow;
+
+// Assuming today is 1404/02/24 (2025-05-22)
+echo JalaliFlow::toRelativeJalali('2025-05-22'); // Output: امروز
+echo JalaliFlow::toRelativeJalali('2025-05-21'); // Output: دیروز
+echo JalaliFlow::toRelativeJalali('2025-05-24'); // Output: ۲ روز بعد
+echo JalaliFlow::toRelativeJalali('2025-05-19'); // Output: ۳ روز پیش
+echo JalaliFlow::toRelativeJalali('2025-05-19', 'Asia/Tehran', 'en'); // Output: 3 days ago
+```
 ### Checking Holidays
 Check if a Jalali date is a holiday based on the configured holiday list.
 
