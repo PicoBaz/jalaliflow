@@ -374,6 +374,34 @@ echo $post->jalali_date; // Output: 1404/02/24
   ```
 
 **Note:** Hijri date conversions are approximate due to the simplified algorithm. For precise conversions, consider integrating with an external API. Dates must be in `Y/m/d` format for Hijri and Jalali, or `Y-m-d` for Gregorian.
+
+### Calculating Working Days Between Dates
+
+`JalaliFlow` provides a method to calculate the number of working days (excluding holidays and Fridays) between two Jalali dates. This is ideal for payroll systems, project management, or scheduling applications.
+
+- **Calculate working days between two Jalali dates:**
+  Returns the number of working days, including the start date but excluding the end date.
+  ```php
+  use PicoBaz\JalaliFlow\Facades\JalaliFlow;
+
+  try {
+      $days = JalaliFlow::workingDaysBetween('1404/02/20', '1404/02/27');
+      echo "Working days: $days";
+      // Output: Working days: 5 (assuming no holidays, excluding Friday)
+
+      $days = JalaliFlow::workingDaysBetween('1404/01/01', '1404/01/07');
+      echo "Working days: $days";
+      // Output: Working days: 2 (excluding Nowruz holidays and Friday)
+
+      $days = JalaliFlow::workingDaysBetween('1404/02/24', '1404/02/24');
+      echo "Working days: $days";
+      // Output: Working days: 0 (same start and end date)
+  } catch (Exception $e) {
+      echo "Error: " . $e->getMessage();
+  }
+  ```
+
+**Note:** Dates must be in `Y/m/d` format. The method uses `isWorkingDay` to exclude holidays and Fridays (the official weekend in Iran). Ensure holiday data is up-to-date for accurate results.
 ### Artisan Command
 List holidays for a specific Jalali year:
 
