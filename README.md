@@ -1,3 +1,6 @@
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/picobaz/gridview.svg?style=flat-square)](https://packagist.org/packages/picobaz/jalaliflow)
+[![Total Downloads](https://img.shields.io/packagist/dt/picobaz/gridview.svg?style=flat-square)](https://packagist.org/packages/picobaz/jalaliflow)
+[![License](https://img.shields.io/packagist/l/picobaz/gridview.svg?style=flat-square)](https://packagist.org/packages/picobaz/jalaliflow)
 # JalaliFlow Documentation
 
 **JalaliFlow** is a powerful Laravel package designed to handle Persian (Jalali) calendar operations with ease. It provides advanced date conversion, holiday management, and event scheduling, seamlessly integrated with Laravel’s ecosystem. With support for Jalali and Gregorian calendars, holiday checking, and automated event scheduling, JalaliFlow is ideal for projects targeting Persian-speaking audiences.
