@@ -1,0 +1,45 @@
+name: 🐛 Bug Report
+description: Report a bug or unexpected behavior in JalaliFlow
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a bug! Please fill out the form below to help us investigate and fix the issue.
+  - type: textarea
+    id: description
+    attributes:
+      label: 📝 Bug Description
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 🔀 Steps to Reproduce
+      description: Tell us how to reproduce the behavior. Please provide code snippets if possible.
+      placeholder: |
+        1. Install package...
+        2. Configure config/sentinel.php like this...
+        3. Run command...
+    validations:
+      required: true
+  - type: dropdown
+    id: environment
+    attributes:
+      label: 💻 Environment Matrix
+      multiple: true
+      options:
+        - Laravel 13.x
+        - Laravel 12.x
+        - Laravel 11.x
+        - PHP 8.4
+        - PHP 8.3
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 📋 Error Logs / Screenshots
+      description: Paste any relevant error logs, stack traces, or drag-and-drop screenshots here.
+      render: shell
